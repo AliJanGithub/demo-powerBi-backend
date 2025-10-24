@@ -109,3 +109,43 @@ export const changeName = asyncHandler(async (req, res) => {
   });
 });
 
+
+
+
+
+
+export const uploadLogo = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, message: 'No image uploaded' });
+  }
+
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    return res.status(404).json({ success: false, message: 'User not found' });
+  }
+
+  user.logo = {
+    data: req.file.buffer,
+    contentType: req.file.mimetype
+  };
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Logo uploaded successfully'
+  });
+});
+
+// ✅ Get user/company logo
+export const getLogo = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const user = await User.findById(id);
+
+  if (!user || !user.logo?.data) {
+    return res.status(404).json({ success: false, message: 'Logo not found' });
+  }
+
+  res.set('Content-Type', user.logo.contentType);
+  res.send(user.logo.data);
+});

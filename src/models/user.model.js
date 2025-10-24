@@ -102,6 +102,10 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   },
+    logo: {
+    data: Buffer,
+    contentType: String
+  },
   inviteTokenHash: {
     type: String
   },
