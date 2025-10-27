@@ -52,33 +52,127 @@ static async createDashboard(adminId, dashboardData) {
 
 
 
-static async assignByDepartment(department, userIds, requestingUser) {
+// static async assignByDepartment(department, userIds, requestingUser) {
+//   if (requestingUser.role !== 'ADMIN') {
+//     throw createApiError('Only admins can assign dashboards', 403);
+//   }
+
+//   const dashboards = await Dashboard.find({
+//     company: requestingUser.company,
+//     department
+//   });
+
+//   if (!dashboards.length) {
+//     throw createApiError('No dashboards found for this department', 404);
+//   }
+//  for (const userId of userIds) {
+//     const notification = await Notification.create({
+//       recipient: userId,
+//       sender: requestingUser._id,
+//       type: 'NEW_DASHBOARD',
+//       message: `A new dashboard from ${department} department has been assigned to you.`,
+//     });
+
+//     // Emit socket notification
+//     const notificationSocket = req.app.get('notificationSocket');
+//     if (notificationSocket) {
+//       notificationSocket.sendToUser(userId, notification);
+//     }
+//   }
+//   const dashboardIds = dashboards.map(d => d._id);
+
+//   await Dashboard.updateMany(
+//     { _id: { $in: dashboardIds } },
+//     { $addToSet: { accessUsers: { $each: userIds } } }
+//   );
+
+//   return dashboards;
+// }
+
+// Get all dashboards of a specific department
+static async getDashboardsByDepartment(department, requestingUser) {
+  try {
+   // assuming you use auth middleware
+
+    // Validate role
+    if (!requestingUser || requestingUser.role !== 'ADMIN') {
+      throw createApiError('Only admins can view department dashboards', 403);
+    }
+
+    // Validate department
+    const validDepartments = ['FINANCE', 'SALES', 'MARKETING', 'HR', 'GENERAL', 'OTHER'];
+    if (!department || !validDepartments.includes(department)) {
+      throw createApiError('Invalid or missing department', 400);
+    }
+
+    // Fetch dashboards for this department and company
+    const dashboards = await Dashboard.find({
+      company: requestingUser.company,
+      department
+    }).sort({ createdAt: -1 });
+
+    if (!dashboards.length) {
+      return createApiError("no dashboard found",401)
+    }
+return dashboards
+    // res.status(200).json({
+    //   success: true,
+    //   message: `Dashboards for ${department} department fetched successfully`,
+    //   data: dashboards
+    // });
+
+  } catch (error) {
+   throw createApiError("Invalid errors",401)
+  }
+}
+
+
+static async assignByDepartment(department, userIds, requestingUser, selectedDashboardIds = []) {
   if (requestingUser.role !== 'ADMIN') {
     throw createApiError('Only admins can assign dashboards', 403);
   }
 
-  const dashboards = await Dashboard.find({
-    company: requestingUser.company,
-    department
-  });
+  // ✅ Determine which dashboards to assign
+  let dashboards;
+
+  if (selectedDashboardIds.length > 0) {
+    // Assign only selected dashboards
+    dashboards = await Dashboard.find({
+      _id: { $in: selectedDashboardIds },
+      company: requestingUser.company,
+      department
+    });
+  } else {
+    // Assign all dashboards from that department
+    dashboards = await Dashboard.find({
+      company: requestingUser.company,
+      department
+    });
+  }
 
   if (!dashboards.length) {
-    throw createApiError('No dashboards found for this department', 404);
+    throw createApiError('No dashboards found to assign', 404);
   }
- for (const userId of userIds) {
+
+  // ✅ Notify each user
+  for (const userId of userIds) {
     const notification = await Notification.create({
       recipient: userId,
       sender: requestingUser._id,
       type: 'NEW_DASHBOARD',
-      message: `A new dashboard from ${department} department has been assigned to you.`,
+      message: `New ${department} dashboard(s) have been assigned to you.`,
     });
 
-    // Emit socket notification
-    const notificationSocket = req.app.get('notificationSocket');
-    if (notificationSocket) {
-      notificationSocket.sendToUser(userId, notification);
+    // If using socket notifications
+    if (requestingUser.req?.app) {
+      const notificationSocket = requestingUser.req.app.get('notificationSocket');
+      if (notificationSocket) {
+        notificationSocket.sendToUser(userId, notification);
+      }
     }
   }
+
+  // ✅ Assign dashboards to users
   const dashboardIds = dashboards.map(d => d._id);
 
   await Dashboard.updateMany(
@@ -88,9 +182,6 @@ static async assignByDepartment(department, userIds, requestingUser) {
 
   return dashboards;
 }
-
-
-
 
 
   static async getDashboards(requestingUser) {

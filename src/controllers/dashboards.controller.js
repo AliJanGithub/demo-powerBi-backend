@@ -68,7 +68,7 @@ export const deleteDashboard = asyncHandler(async (req, res) => {
 
 export const assignDashboard = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { userIds } = req.body;
+  const { userIds  } = req.body;
 
   const dashboard = await DashboardService.assignDashboard(id, userIds, req.user);
 
@@ -91,11 +91,28 @@ export const unassignDashboard = asyncHandler(async (req, res) => {
     data: { dashboard }
   });
 });
+ 
+
+export const getDashboardsByDepartment=asyncHandler(
+  async(req,res)=>{
+    const {department}=req.params;
+    const requestingUser=req.user
+    const dashboard=await DashboardService.getDashboardsByDepartment(department,requestingUser);
+    res.json({
+      success:true,
+      message:'All Dashboards by department',
+      data:{dashboard}
+    })
+  }
+)
+
+
+
 
 export const assignByDepartment = asyncHandler(async (req, res) => {
-  const { department, userIds } = req.body;
+  const { department, userIds,selectedDashboardIds } = req.body;
 
-  const dashboards = await DashboardService.assignByDepartment(department, userIds, req.user);
+  const dashboards = await DashboardService.assignByDepartment(department, userIds, req.user,selectedDashboardIds);
 
   res.json({
     success: true,
