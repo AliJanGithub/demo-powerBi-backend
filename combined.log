@@ -2220,3 +2220,7 @@
 {"level":"info","message":"🔔 User ajan06132@gmail.com connected to notifications socket","timestamp":"2025-10-27 19:25:53"}
 {"level":"info","message":"🔕 User mu3255719@gmail.com disconnected from notifications","timestamp":"2025-10-27 19:26:04"}
 {"level":"info","message":"🔔 User ajan06132@gmail.com connected to notifications socket","timestamp":"2025-10-27 19:26:05"}
+{"level":"info","message":"SIGINT received, shutting down gracefully","timestamp":"2025-10-27 19:30:54"}
+{"level":"info","message":"🔕 User ajan06132@gmail.com disconnected from notifications","timestamp":"2025-10-27 19:34:57"}
+{"level":"info","message":"🔕 User ajan06132@gmail.com disconnected from notifications","timestamp":"2025-10-27 19:35:09"}
+{"level":"info","message":"Server closed","timestamp":"2025-10-27 19:35:09"}
