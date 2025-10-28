@@ -32,8 +32,18 @@ export const authenticate = async (req, res, next) => {
     if (!user.isActive) {
       throw createApiError('Account is inactive', 403);
     }
+// inside authenticate middleware, right after you set req.user
+
 
     req.user = user;
+if (req.tenant && user.company && !user.company.equals(req.tenant._id)) {
+  throw createApiError('User does not belong to this tenant', 403);
+}
+
+// Optional: cross-check with token payload tenant
+if (decoded.tenantId && req.tenant && decoded.tenantId !== String(req.tenant._id)) {
+  throw createApiError('Token tenant mismatch', 403);
+}
     next();
   } catch (error) {
     next(error);

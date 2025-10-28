@@ -4,13 +4,14 @@ import { DashboardService } from '../services/dashboard.service.js';
 import { asyncHandler, sanitizeUser } from '../utils/helpers.js';
 
 export const inviteAdmin = asyncHandler(async (req, res) => {
-  const { email, companyName, name } = req.body;
+  const { email, companyName,subdomain, name } = req.body;
 
   const { admin, company } = await AuthService.inviteAdmin(
     req.user._id,
     email,
     companyName,
-    name
+    subdomain,
+    name,
   );
 
   res.status(201).json({

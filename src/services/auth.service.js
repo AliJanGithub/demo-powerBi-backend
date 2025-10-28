@@ -6,37 +6,71 @@ import { generateToken, hashToken, createApiError } from '../utils/helpers.js';
 import { config } from '../configs/secrets.js';
 
 export class AuthService {
-  static async login(email, password) {
-   const user = await User.findOne({ email })
-  .populate({
+  // static async login(email, password) {
+  //  const user = await User.findOne({ email })
+  // .populate({
+  //   path: 'company',
+  //   select: 'name createdBy', // include createdBy so we can populate it next
+  //   populate: {
+  //     path: 'createdBy',
+  //     select: 'name email role' // fields from User model
+  //   }
+  // });
+
+
+  //   if (!user || !user.passwordHash) {
+  //     throw createApiError('Invalid credentials', 401);
+  //   }
+
+  //   const isPasswordValid = await user.comparePassword(password);
+
+  //   if (!isPasswordValid) {
+  //     throw createApiError('Invalid credentials', 401);
+  //   }
+
+  //   if (!user.isActive) {
+  //     throw createApiError('Account is inactive', 403);
+  //   }
+
+  //   const { accessToken, refreshToken } = JWTService.generateTokenPair(user._id, user.role,user.company?._id);
+  //   await JWTService.storeRefreshToken(user._id, refreshToken);
+
+  //   return { user, accessToken, refreshToken };
+  // }
+  static async login(email, password, tenant) {
+  const user = await User.findOne({ email }).populate({
     path: 'company',
-    select: 'name createdBy', // include createdBy so we can populate it next
+    select: 'name createdBy',
     populate: {
       path: 'createdBy',
-      select: 'name email role' // fields from User model
+      select: 'name email role'
     }
   });
 
-
-    if (!user || !user.passwordHash) {
-      throw createApiError('Invalid credentials', 401);
-    }
-
-    const isPasswordValid = await user.comparePassword(password);
-
-    if (!isPasswordValid) {
-      throw createApiError('Invalid credentials', 401);
-    }
-
-    if (!user.isActive) {
-      throw createApiError('Account is inactive', 403);
-    }
-
-    const { accessToken, refreshToken } = JWTService.generateTokenPair(user._id, user.role);
-    await JWTService.storeRefreshToken(user._id, refreshToken);
-
-    return { user, accessToken, refreshToken };
+  if (!user || !user.passwordHash) {
+    throw createApiError('Invalid credentials', 401);
   }
+
+  const isPasswordValid = await user.comparePassword(password);
+  if (!isPasswordValid) {
+    throw createApiError('Invalid credentials', 401);
+  }
+
+  if (!user.isActive) {
+    throw createApiError('Account is inactive', 403);
+  }
+
+  // 🚨 Enforce tenant match
+  if (tenant && user.company?._id.toString() !== tenant._id.toString()) {
+    throw createApiError('User does not belong to this tenant.', 403);
+  }
+
+  const { accessToken, refreshToken } = JWTService.generateTokenPair(user._id, user.role, user.company?._id);
+  await JWTService.storeRefreshToken(user._id, refreshToken);
+
+  return { user, accessToken, refreshToken };
+}
+
 
   static async getUserById(id) {
   return User.findById(id);
@@ -107,7 +141,7 @@ export class AuthService {
 
         // 4. Optionally: Log the user in and return tokens, or just return success
         // We'll return tokens for a smooth transition to the authenticated state.
-        const { accessToken, refreshToken } = JWTService.generateTokenPair(user._id, user.role);
+        const { accessToken, refreshToken } = JWTService.generateTokenPair(user._id, user.role,  user.company?._id);
         await JWTService.storeRefreshToken(user._id, refreshToken);
 
         return { user, accessToken, refreshToken };
@@ -166,7 +200,8 @@ static async changeName(userId, newName) {
 
       const { accessToken, refreshToken: newRefreshToken } = JWTService.generateTokenPair(
         user._id,
-        user.role
+        user.role,
+          user.company?._id
       );
       await JWTService.storeRefreshToken(user._id, newRefreshToken);
 
@@ -182,7 +217,7 @@ static async changeName(userId, newName) {
     }
   }
 
-  static async inviteAdmin(superAdminId, email, companyName, name = null) {
+  static async inviteAdmin(superAdminId, email, companyName,subdomain, name = null) {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       throw createApiError('User with this email already exists', 400);
@@ -193,7 +228,8 @@ static async changeName(userId, newName) {
     if (!company) {
       company = await Company.create({
         name: companyName,
-        createdBy: superAdminId
+        createdBy: superAdminId,
+        subdomain
       });
     }
 
@@ -273,7 +309,7 @@ static async changeName(userId, newName) {
 
     await user.save();
 
-    const { accessToken, refreshToken } = JWTService.generateTokenPair(user._id, user.role);
+    const { accessToken, refreshToken } = JWTService.generateTokenPair(user._id, user.role,  user.company?._id);
     await JWTService.storeRefreshToken(user._id, refreshToken);
 
     return { user, accessToken, refreshToken };

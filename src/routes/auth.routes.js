@@ -6,19 +6,47 @@ import { loginValidation, acceptInviteValidation } from '../utils/validators.js'
 import { body } from 'express-validator';
 
 const router = express.Router();
-router.post('/login', loginValidation, validate, authController.login);
 
+// ✅ LOGIN — only allow if tenant exists (or localhost)
+router.post('/login', loginValidation, validate, async (req, res, next) => {
+  try {
+    if (!req.tenant && !req.hostname.includes('localhost')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid tenant — subdomain not recognized or inactive.',
+      });
+    }
+
+    // Proceed with login
+    await authController.login(req, res, next);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ✅ REFRESH — same rule, must belong to a valid tenant
 router.post(
   '/refresh',
   [body('refreshToken').notEmpty().withMessage('Refresh token is required')],
   validate,
-  authController.refresh
+  async (req, res, next) => {
+    try {
+      if (!req.tenant && !req.hostname.includes('localhost')) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid tenant — subdomain not recognized or inactive.',
+        });
+      }
+
+      await authController.refresh(req, res, next);
+    } catch (err) {
+      next(err);
+    }
+  }
 );
 
 router.post('/logout', authController.logout);
-
 router.post('/accept-invite', acceptInviteValidation, validate, authController.acceptInvite);
-
 router.get('/me', authenticate, authController.me);
 
 router.post(
@@ -37,17 +65,12 @@ router.post(
 router.post(
   '/change-name',
   authenticate,
-  [
-    body('newName').notEmpty().withMessage('New name is required')
-  ],
+  [body('newName').notEmpty().withMessage('New name is required')],
   validate,
   authController.changeName
 );
 
 router.post('/forgot-password', authController.forgotPassword);
-
-// 2. Route to submit the new password using the token (Step 2)
-// The token is typically passed in the URL, hence the :token parameter.
 router.post('/reset-password/:token', authController.resetPassword);
 
 export default router;

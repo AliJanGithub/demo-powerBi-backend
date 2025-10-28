@@ -1,10 +1,10 @@
 import { AuthService } from '../services/auth.service.js';
 import { asyncHandler, sanitizeUser } from '../utils/helpers.js';
-
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
+  const tenant = req.tenant;
 
-  const { user, accessToken, refreshToken } = await AuthService.login(email, password);
+  const { user, accessToken, refreshToken } = await AuthService.login(email, password, tenant);
 
   res.json({
     success: true,
@@ -16,6 +16,7 @@ export const login = asyncHandler(async (req, res) => {
     }
   });
 });
+
 
 export const refresh = asyncHandler(async (req, res) => {
   const { refreshToken } = req.body;

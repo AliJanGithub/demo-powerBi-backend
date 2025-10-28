@@ -98,6 +98,7 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  
   invitedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -128,6 +129,7 @@ const UserSchema = new mongoose.Schema({
 UserSchema.index({ email: 1 });
 UserSchema.index({ role: 1, company: 1 });
 UserSchema.index({ inviteTokenHash: 1 });
+UserSchema.index({ company: 1, email: 1 }); // optional optimization
 
 UserSchema.methods.comparePassword = async function(candidatePassword) {
   if (!this.passwordHash) {

@@ -12,10 +12,12 @@ import commentsRoutes from './routes/comments.routes.js';
 
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 import { logger } from './configs/logger.js';
+import { tenantResolver } from './middlewares/tenantResolver.js';
 
 export const createApp = () => {
   const app = express();
-
+  app.set('trust proxy', 1);
+   app.use(tenantResolver)
   app.use(helmet());
 
   app.use(cors({
