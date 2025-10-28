@@ -23,7 +23,8 @@ const startServer = async () => {
 
     const io = new Server(httpServer, {
       cors: {
-        origin: config.frontendUrl,
+        // origin: config.frontendUrl,
+        origin: "*",
         methods: ['GET', 'POST'],
         credentials: true
       }
