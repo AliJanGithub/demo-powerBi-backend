@@ -2370,3 +2370,6 @@
 {"level":"info","message":"Email service initialized successfully","timestamp":"2025-10-29 19:03:15"}
 {"level":"info","message":"Server running in production mode on port 5000","timestamp":"2025-10-29 19:03:15"}
 {"level":"info","message":"Frontend URL: https://biportal365.com","timestamp":"2025-10-29 19:03:15"}
+{"level":"info","message":"Email service initialized successfully","timestamp":"2025-10-29 19:10:53"}
+{"level":"info","message":"Server running in production mode on port 5000","timestamp":"2025-10-29 19:10:53"}
+{"level":"info","message":"Frontend URL: https://biportal365.com","timestamp":"2025-10-29 19:10:53"}
