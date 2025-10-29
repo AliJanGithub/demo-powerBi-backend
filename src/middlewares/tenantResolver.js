@@ -14,7 +14,7 @@ export const tenantResolver = async (req, res, next) => {
 
     // Handle root domain (e.g., biportal365.com)
     if (host === 'biportal365.com') {
-      req.tenant = 'superadmin'; // or null if you don't need tenant enforcement
+      req.tenant = null; // or null if you don't need tenant enforcement
       return next();
     }
 
