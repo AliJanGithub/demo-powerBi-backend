@@ -1,3 +1,7 @@
+// src/middlewares/tenantResolver.js
+import { Company } from '../models/company.model.js';
+import { createApiError } from '../utils/helpers.js';
+
 export const tenantResolver = async (req, res, next) => {
   try {
     const host = req.hostname;
