@@ -2364,3 +2364,6 @@
 {"level":"info","message":"Server running in production mode on port 5000","timestamp":"2025-10-29 15:18:21"}
 {"level":"info","message":"Frontend URL: https://biportal365.com","timestamp":"2025-10-29 15:18:21"}
 {"level":"info","message":"Invitation email sent to ajan06132@gmail.com","timestamp":"2025-10-29 15:18:28"}
+{"level":"info","message":"Email service initialized successfully","timestamp":"2025-10-29 19:01:10"}
+{"level":"info","message":"Server running in production mode on port 5000","timestamp":"2025-10-29 19:01:10"}
+{"level":"info","message":"Frontend URL: https://biportal365.com","timestamp":"2025-10-29 19:01:10"}
