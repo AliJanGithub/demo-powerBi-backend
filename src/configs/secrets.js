@@ -30,6 +30,7 @@ export const config = {
     from: process.env.EMAIL_FROM || 'noreply@yourdomain.com'
   },
 
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
-  inviteTokenExpiry: parseInt(process.env.INVITE_TOKEN_EXPIRY || '72')
+  frontendUrl: process.env.FRONTEND_URL || 'https://biportal365.com',
+  inviteTokenExpiry: parseInt(process.env.INVITE_TOKEN_EXPIRY || '72'),
+  baseDomain :process.env.BASE_DOMAIN
 };

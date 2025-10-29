@@ -38,7 +38,7 @@ console.log(tenant)
     }
 
     // 🧩 Step 4: Attach tenant to request
-    req.tenant = tenant;
+    req.tenant = tenant.name;
 
     next();
   } catch (error) {

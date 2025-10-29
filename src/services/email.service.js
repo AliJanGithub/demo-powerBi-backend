@@ -30,14 +30,30 @@ export class EmailService {
     }
   }
 
-  async sendInviteEmail(email, name, role, inviteToken) {
+  getTenantFrontendUrl(tenantName) {
+    // Example:
+    // tenantName = "abc"
+    // FRONTEND_URL = "https://biportal365.com"
+    // → returns "https://abc.biportal365.com"
+    try {
+      const baseUrl = new URL(config.frontendUrl);
+      const domain = config.baseDomain || baseUrl.hostname;
+      if (!tenantName) return config.frontendUrl;
+      return `${baseUrl.protocol}//${tenantName}.${domain}`;
+    } catch {
+      return config.frontendUrl;
+    }
+  }
+
+
+  async sendInviteEmail(email, name, role, inviteToken,tenantName) {
     if (!this.transporter) {
       logger.warn('Email service not configured. Skipping email send.');
       return;
     }
 
-    const inviteUrl = `${config.frontendUrl}/accept-invite?token=${inviteToken}`;
-
+    const tenantFrontendUrl = this.getTenantFrontendUrl(tenantName);
+    const inviteUrl = `${tenantFrontendUrl}/accept-invite?token=${inviteToken}`;
     const roleDisplay = role === 'ADMIN' ? 'Admin' : 'User';
 
     const mailOptions = {
@@ -78,13 +94,15 @@ export class EmailService {
     }
   }
 
-  async sendPasswordResetEmail(email, name, resetToken) {
+  async sendPasswordResetEmail(email, name, resetToken,tenantName) {
     if (!this.transporter) {
       logger.warn('Email service not configured. Skipping email send.');
       return;
     }
 
-    const resetUrl = `${config.frontendUrl}/forgot-password?token=${resetToken}`;
+    
+    const tenantFrontendUrl = this.getTenantFrontendUrl(tenantName);
+    const resetUrl = `${tenantFrontendUrl}/forgot-password?token=${resetToken}`;
 
     const mailOptions = {
       from: config.email.from,

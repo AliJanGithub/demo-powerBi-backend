@@ -218,13 +218,14 @@ static async changeName(userId, newName) {
   }
 
   static async inviteAdmin(superAdminId, email, companyName,subdomain, name = null) {
+    console.log(companyName,"company name")
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       throw createApiError('User with this email already exists', 400);
     }
 
     let company = await Company.findOne({ name: companyName });
-
+    console.log(company,"company")
     if (!company) {
       company = await Company.create({
         name: companyName,
@@ -248,12 +249,12 @@ static async changeName(userId, newName) {
       isActive: false
     });
 
-    await emailService.sendInviteEmail(email, name, 'ADMIN', inviteToken);
+    await emailService.sendInviteEmail(email, name, 'ADMIN', inviteToken,companyName);
 
     return { admin, company };
   }
 
-  static async inviteUser(adminId, email, name = null) {
+  static async inviteUser(adminId, email, name = null,tenant) {
     const admin = await User.findById(adminId).populate('company');
 
     if (!admin || admin.role !== 'ADMIN') {
@@ -280,7 +281,7 @@ static async changeName(userId, newName) {
       isActive: false
     });
 
-    await emailService.sendInviteEmail(email, name, 'USER', inviteToken);
+    await emailService.sendInviteEmail(email, name, 'USER', inviteToken,tenant);
 
     return user;
   }
