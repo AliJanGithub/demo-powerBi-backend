@@ -37,7 +37,8 @@ export class AuthService {
 
   //   return { user, accessToken, refreshToken };
   // }
-  static async login(email, password, tenant) {
+  // static async login(email, password, tenant) {
+  static async login(email, password) {
   const user = await User.findOne({ email }).populate({
     path: 'company',
     select: 'name createdBy',
@@ -61,9 +62,9 @@ export class AuthService {
   }
 
   // 🚨 Enforce tenant match
-  if (tenant && user.company?._id.toString() !== tenant._id.toString()) {
-    throw createApiError('User does not belong to this tenant.', 403);
-  }
+  // if (tenant && user.company?._id.toString() !== tenant._id.toString()) {
+  //   throw createApiError('User does not belong to this tenant.', 403);
+  // }
 
   const { accessToken, refreshToken } = JWTService.generateTokenPair(user._id, user.role, user.company?._id);
   await JWTService.storeRefreshToken(user._id, refreshToken);
@@ -254,7 +255,8 @@ static async changeName(userId, newName) {
     return { admin, company };
   }
 
-  static async inviteUser(adminId, email, name = null,tenant) {
+  // static async inviteUser(adminId, email, name = null,tenant) {
+  static async inviteUser(adminId, email, name = null) {
     const admin = await User.findById(adminId).populate('company');
 
     if (!admin || admin.role !== 'ADMIN') {
@@ -281,7 +283,8 @@ static async changeName(userId, newName) {
       isActive: false
     });
 
-    await emailService.sendInviteEmail(email, name, 'USER', inviteToken,tenant);
+    // await emailService.sendInviteEmail(email, name, 'USER', inviteToken,tenant);
+    await emailService.sendInviteEmail(email, name, 'USER', inviteToken,);
 
     return user;
   }

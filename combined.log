@@ -2423,3 +2423,7 @@
 {"level":"info","message":"Server running in production mode on port 5000","timestamp":"2025-10-30 01:38:19"}
 {"level":"info","message":"Frontend URL: https://biportal365.com","timestamp":"2025-10-30 01:38:19"}
 {"level":"info","message":"SIGINT received, shutting down gracefully","timestamp":"2025-10-30 01:43:53"}
+{"level":"info","message":"Email service initialized successfully","timestamp":"2025-10-30 15:35:06"}
+{"level":"info","message":"Server running in production mode on port 5000","timestamp":"2025-10-30 15:35:06"}
+{"level":"info","message":"Frontend URL: https://biportal365.com","timestamp":"2025-10-30 15:35:06"}
+{"level":"info","message":"SIGINT received, shutting down gracefully","timestamp":"2025-10-30 15:44:23"}

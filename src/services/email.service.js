@@ -46,13 +46,15 @@ export class EmailService {
   }
 
 
-  async sendInviteEmail(email, name, role, inviteToken,tenantName) {
+  // async sendInviteEmail(email, name, role, inviteToken,tenantName) {
+  async sendInviteEmail(email, name, role, inviteToken,) {
     if (!this.transporter) {
       logger.warn('Email service not configured. Skipping email send.');
       return;
     }
 
-    const tenantFrontendUrl = this.getTenantFrontendUrl(tenantName);
+    // const tenantFrontendUrl = this.getTenantFrontendUrl(tenantName);
+    const tenantFrontendUrl = 'https://biportal365.com'
     const inviteUrl = `${tenantFrontendUrl}/accept-invite?token=${inviteToken}`;
     const roleDisplay = role === 'ADMIN' ? 'Admin' : 'User';
 
@@ -94,14 +96,16 @@ export class EmailService {
     }
   }
 
-  async sendPasswordResetEmail(email, name, resetToken,tenantName) {
+  // async sendPasswordResetEmail(email, name, resetToken,tenantName) {
+  async sendPasswordResetEmail(email, name, resetToken) {
     if (!this.transporter) {
       logger.warn('Email service not configured. Skipping email send.');
       return;
     }
 
     
-    const tenantFrontendUrl = this.getTenantFrontendUrl(tenantName);
+    // const tenantFrontendUrl = this.getTenantFrontendUrl(tenantName);
+    const tenantFrontendUrl = 'https://biportal365.com';
     const resetUrl = `${tenantFrontendUrl}/forgot-password?token=${resetToken}`;
 
     const mailOptions = {

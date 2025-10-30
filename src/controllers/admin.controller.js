@@ -3,7 +3,8 @@ import { asyncHandler, sanitizeUser } from '../utils/helpers.js';
 
 export const inviteUser = asyncHandler(async (req, res) => {
   const { email, name } = req.body;
-
+  // const tenant = req.tenant;
+  // const user = await AuthService.inviteUser(req.user._id, email, name,tenant);
   const user = await AuthService.inviteUser(req.user._id, email, name);
 
   res.status(201).json({
