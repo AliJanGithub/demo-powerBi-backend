@@ -16,7 +16,7 @@ import { logger } from './configs/logger.js';
 
 export const createApp = () => {
   const app = express();
-  app.set('trust proxy', 1);
+  // app.set('trust proxy', 1);
   //  app.use(tenantResolver)
   app.use(helmet());
 
