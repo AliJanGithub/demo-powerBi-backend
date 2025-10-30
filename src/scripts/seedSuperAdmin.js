@@ -6,7 +6,7 @@ import  {User}  from "../models/user.model.js"
 import { connectDB } from "../configs/db.js";
 import { config } from "../configs/secrets.js";
 
-// dotenv.config();
+dotenv.config();
 
 const seedSuperAdmin = async () => {
   try {

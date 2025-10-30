@@ -2427,3 +2427,12 @@
 {"level":"info","message":"Server running in production mode on port 5000","timestamp":"2025-10-30 15:35:06"}
 {"level":"info","message":"Frontend URL: https://biportal365.com","timestamp":"2025-10-30 15:35:06"}
 {"level":"info","message":"SIGINT received, shutting down gracefully","timestamp":"2025-10-30 15:44:23"}
+{"level":"info","message":"Email service initialized successfully","timestamp":"2025-10-30 16:12:37"}
+{"level":"info","message":"Server running in production mode on port 5000","timestamp":"2025-10-30 16:12:37"}
+{"level":"info","message":"Frontend URL: https://biportal365.com","timestamp":"2025-10-30 16:12:37"}
+{"level":"info","message":"🔔 User ajan06132@gmail.com connected to notifications socket","timestamp":"2025-10-30 16:13:17"}
+{"level":"info","message":"🔕 User ajan06132@gmail.com disconnected from notifications","timestamp":"2025-10-30 16:13:21"}
+{"level":"info","message":"Email service initialized successfully","timestamp":"2025-10-30 16:16:28"}
+{"level":"info","message":"Server running in production mode on port 5000","timestamp":"2025-10-30 16:16:28"}
+{"level":"info","message":"Frontend URL: https://biportal365.com","timestamp":"2025-10-30 16:16:28"}
+{"level":"info","message":"SIGINT received, shutting down gracefully","timestamp":"2025-10-30 16:16:34"}
