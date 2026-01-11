@@ -79,11 +79,6 @@ export class AuthService {
 
 
 
-
-
-
-
-
  static async forgotPasswordRequest(email) {
         const user = await User.findOne({ email });
 
@@ -150,12 +145,6 @@ export class AuthService {
 
 
 
-
-
-
-
-
-
 // ✅ Change Password
 static async changePassword(userId, currentPassword, newPassword) {
   const user = await User.findById(userId);
@@ -218,44 +207,119 @@ static async changeName(userId, newName) {
     }
   }
 
-  static async inviteAdmin(superAdminId, email, companyName,subdomain, name = null) {
-    console.log(companyName,"company name")
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      throw createApiError('User with this email already exists', 400);
-    }
+  // static async inviteAdmin(superAdminId, email, companyName,subdomain, name = null) {
+  //   console.log(companyName,"company name")
+  //   const existingUser = await User.findOne({ email });
+  //   if (existingUser) {
+  //     throw createApiError('User with this email already exists', 400);
+  //   }
 
-    let company = await Company.findOne({ name: companyName });
-    console.log(company,"company")
-    if (!company) {
-      company = await Company.create({
-        name: companyName,
-        createdBy: superAdminId,
-        subdomain
-      });
-    }
+  //   let company = await Company.findOne({ name: companyName });
+  //   console.log(company,"company")
+  //   if (!company) {
+  //     company = await Company.create({
+  //       name: companyName,
+  //       createdBy: superAdminId,
+  //       subdomain
+  //     });
+  //   }
 
-    const inviteToken = generateToken();
-    const inviteTokenHash = hashToken(inviteToken);
-    const inviteExpiresAt = new Date(Date.now() + config.inviteTokenExpiry * 60 * 60 * 1000);
+  //   const inviteToken = generateToken();
+  //   const inviteTokenHash = hashToken(inviteToken);
+  //   const inviteExpiresAt = new Date(Date.now() + config.inviteTokenExpiry * 60 * 60 * 1000);
 
-    const admin = await User.create({
-      email,
-      name,
-      role: 'ADMIN',
-      company: company._id,
-      invitedBy: superAdminId,
-      inviteTokenHash,
-      inviteExpiresAt,
-      isActive: false
-    });
+  //   const admin = await User.create({
+  //     email,
+  //     name,
+  //     role: 'ADMIN',
+  //     company: company._id,
+  //     invitedBy: superAdminId,
+  //     inviteTokenHash,
+  //     inviteExpiresAt,
+  //     isActive: false
+  //   });
 
-    await emailService.sendInviteEmail(email, name, 'ADMIN', inviteToken,companyName);
+  //   await emailService.sendInviteEmail(email, name, 'ADMIN', inviteToken,companyName);
 
-    return { admin, company };
-  }
+  //   return { admin, company };
+  // }
 
   // static async inviteUser(adminId, email, name = null,tenant) {
+  
+
+
+static async inviteAdmin(superAdminId, email, companyName, subdomain, name = null, subscriptionPlan = 'TRIAL') {
+  console.log(companyName, "company name");
+
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    throw createApiError('User with this email already exists', 400);
+  }
+
+  // ✅ Subscription plan durations (in days)
+  const planDurations = {
+    TRIAL: 30,
+    PRO: 180,
+    ENTERPRISE: 365
+  };
+
+  // validate plan from body
+  if (!planDurations[subscriptionPlan]) {
+    throw createApiError('Invalid subscription plan provided', 400);
+  }
+
+  // calculate subscription end date
+  const subscriptionEndDate = new Date(Date.now() + planDurations[subscriptionPlan] * 24 * 60 * 60 * 1000);
+
+  // 🔥 Find or create company
+  let company = await Company.findOne({ name: companyName });
+
+  if (!company) {
+    company = await Company.create({
+      name: companyName,
+      createdBy: superAdminId,
+      subdomain,
+      subscriptionPlan,
+      subscriptionEnd: subscriptionEndDate
+    });
+  } else {
+    // if company already exists, update its plan
+    company.subscriptionPlan = subscriptionPlan;
+    company.subscriptionEnd = subscriptionEndDate;
+    await company.save();
+  }
+
+  const inviteToken = generateToken();
+  const inviteTokenHash = hashToken(inviteToken);
+  const inviteExpiresAt = new Date(Date.now() + config.inviteTokenExpiry * 60 * 60 * 1000);
+
+  // 🔥 Create the admin user
+  const admin = await User.create({
+    email,
+    name,
+    role: 'ADMIN',
+    company: company._id,
+    invitedBy: superAdminId,
+    inviteTokenHash,
+    inviteExpiresAt,
+    isActive: false,
+    subscriptionPlan,
+    subscriptionEnd: subscriptionEndDate
+  });
+
+  await emailService.sendInviteEmail(email, name, 'ADMIN', inviteToken, companyName);
+
+  return { admin, company };
+}
+
+
+
+
+
+
+
+
+
   static async inviteUser(adminId, email, name = null) {
     const admin = await User.findById(adminId).populate('company');
 

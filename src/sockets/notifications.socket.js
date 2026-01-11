@@ -1,12 +1,14 @@
-// sockets/notifications.socket.js
 import jwt from 'jsonwebtoken';
 import { config } from '../configs/secrets.js';
 import { User } from '../models/user.model.js';
-import { Notification } from '../models/notification.model.js';
+import { notificationService } from '../services/notification.service.js';
 import { logger } from '../configs/logger.js';
 
 export const setupNotificationSocket = (io) => {
   const notificationNamespace = io.of('/notifications');
+
+  // Initialize notification service with socket namespace
+  notificationService.setSocketNamespace(notificationNamespace);
 
   notificationNamespace.use(async (socket, next) => {
     try {
@@ -21,24 +23,55 @@ export const setupNotificationSocket = (io) => {
       next();
     } catch (error) {
       logger.error('Notification socket auth error:', error.message);
+      
+      if (error.name === 'TokenExpiredError') {
+        return next(new Error('Token expired. Please refresh your session.'));
+      } else if (error.name === 'JsonWebTokenError') {
+        return next(new Error('Invalid token. Please login again.'));
+      }
+      
       next(new Error('Authentication failed'));
     }
   });
 
   notificationNamespace.on('connection', (socket) => {
-    
-    logger.info(`🔔 User ${socket.user.email} connected to notifications socket`);
+    logger.info(`🔔 User ${socket.user?.email || 'unknown'} connected to notifications socket`);
 
- socket.join(`user:${socket.user._id.toString()}`);
+    if (socket.user) {
+      socket.join(`user:${socket.user._id.toString()}`);
+    }
+
+    // Client can request to mark notification as read via socket
+    socket.on('mark_read', async (notificationId) => {
+      try {
+        const notification = await notificationService.markAsRead(notificationId, socket.user._id);
+        if (notification) {
+          socket.emit('notification_read', { notificationId });
+        }
+      } catch (error) {
+        logger.error('Error marking notification as read:', error.message);
+      }
+    });
+
+    // Client can request unread count
+    socket.on('get_unread_count', async () => {
+      try {
+        const count = await notificationService.getUnreadCount(socket.user._id);
+        socket.emit('unread_count', { count });
+      } catch (error) {
+        logger.error('Error getting unread count:', error.message);
+      }
+    });
 
     socket.on('disconnect', () => {
-      logger.info(`🔕 User ${socket.user.email} disconnected from notifications`);
+      logger.info(`🔕 User ${socket.user?.email || 'unknown'} disconnected from notifications`);
     });
   });
 
-  // Methods for sending notifications
   return {
     sendToUser: (userId, notification) => {
-notificationNamespace.to(`user:${userId.toString()}`).emit('new_notification', notification);    }
+      notificationNamespace.to(`user:${userId.toString()}`).emit('new_notification', notification);
+    },
+    notificationService
   };
 };

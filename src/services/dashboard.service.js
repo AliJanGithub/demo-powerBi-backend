@@ -2,187 +2,103 @@ import { Dashboard } from '../models/dashboard.model.js';
 import { User } from '../models/user.model.js';
 import { Comment } from '../models/comment.model.js';
 import { createApiError } from '../utils/helpers.js';
-import { Notification } from '../models/notification.model.js';
+import { notificationService } from './notification.service.js';
 
 export class DashboardService {
-  // static async createDashboard(creatorId, dashboardData) {
-  //   const creator = await User.findById(creatorId);
+  static async createDashboard(adminId, dashboardData, app) {
+    const admin = await User.findById(adminId);
 
-  //   if (creator.role !== 'ADMIN') {
-  //     throw createApiError('Only admins can create dashboards', 403);
-  //   }
+    if (!admin || admin.role !== 'ADMIN') {
+      throw createApiError('Only admins can create dashboards', 403);
+    }
 
-  //   const dashboard = await Dashboard.create({
-  //     ...dashboardData,
-  //     createdBy: creatorId,
-  //     company: creator.company
-  //   });
+    const { title, embedUrl, description, department, tags } = dashboardData;
 
-  //   await dashboard.populate('createdBy', 'name email');
-  //   await dashboard.populate('company', 'name');
+    if (!department || !['FINANCE', 'SALES', 'MARKETING', 'GENERAL', 'OTHER', 'HR'].includes(department)) {
+      throw createApiError('Invalid or missing department', 400);
+    }
 
-  //   return dashboard;
-  // }
+    const dashboard = await Dashboard.create({
+      title,
+      embedUrl,
+      description,
+      department,
+      tags,
+      createdBy: admin._id,
+      company: admin.company
+    });
 
-static async createDashboard(adminId, dashboardData) {
-  const admin = await User.findById(adminId);
+    // Send notifications to all users invited by this admin (non-blocking)
+    try {
+      await notificationService.sendDashboardCreatedNotification(dashboard, admin, app);
+    } catch (error) {
+      // Log error but don't block dashboard creation
+      console.error('Failed to send dashboard creation notifications:', error);
+    }
 
-  if (!admin || admin.role !== 'ADMIN') {
-    throw createApiError('Only admins can create dashboards', 403);
+    return dashboard;
   }
 
-  const { title, embedUrl, description, department, tags } = dashboardData;
-
-  if (!department || !['FINANCE', 'SALES', 'MARKETING', 'GENERAL', 'OTHER', 'HR'].includes(department)) {
-    throw createApiError('Invalid or missing department', 400);
-  }
-
-  const dashboard = await Dashboard.create({
-    title,
-    embedUrl,
-    description,
-    department,
-    tags,
-    createdBy: admin._id,
-    company: admin.company
-  });
-
-  return dashboard;
-}
-
-
-
-// static async assignByDepartment(department, userIds, requestingUser) {
-//   if (requestingUser.role !== 'ADMIN') {
-//     throw createApiError('Only admins can assign dashboards', 403);
-//   }
-
-//   const dashboards = await Dashboard.find({
-//     company: requestingUser.company,
-//     department
-//   });
-
-//   if (!dashboards.length) {
-//     throw createApiError('No dashboards found for this department', 404);
-//   }
-//  for (const userId of userIds) {
-//     const notification = await Notification.create({
-//       recipient: userId,
-//       sender: requestingUser._id,
-//       type: 'NEW_DASHBOARD',
-//       message: `A new dashboard from ${department} department has been assigned to you.`,
-//     });
-
-//     // Emit socket notification
-//     const notificationSocket = req.app.get('notificationSocket');
-//     if (notificationSocket) {
-//       notificationSocket.sendToUser(userId, notification);
-//     }
-//   }
-//   const dashboardIds = dashboards.map(d => d._id);
-
-//   await Dashboard.updateMany(
-//     { _id: { $in: dashboardIds } },
-//     { $addToSet: { accessUsers: { $each: userIds } } }
-//   );
-
-//   return dashboards;
-// }
-
-// Get all dashboards of a specific department
-static async getDashboardsByDepartment(department, requestingUser) {
-  try {
-   // assuming you use auth middleware
-
-    // Validate role
+  static async getDashboardsByDepartment(department, requestingUser) {
     if (!requestingUser || requestingUser.role !== 'ADMIN') {
       throw createApiError('Only admins can view department dashboards', 403);
     }
 
-    // Validate department
     const validDepartments = ['FINANCE', 'SALES', 'MARKETING', 'HR', 'GENERAL', 'OTHER'];
     if (!department || !validDepartments.includes(department)) {
       throw createApiError('Invalid or missing department', 400);
     }
 
-    // Fetch dashboards for this department and company
     const dashboards = await Dashboard.find({
       company: requestingUser.company,
       department
     }).sort({ createdAt: -1 });
 
+    return dashboards;
+  }
+
+
+  static async assignByDepartment(department, userIds, requestingUser, selectedDashboardIds = [], app) {
+    if (requestingUser.role !== 'ADMIN') {
+      throw createApiError('Only admins can assign dashboards', 403);
+    }
+
+    let dashboards;
+    if (selectedDashboardIds.length > 0) {
+      dashboards = await Dashboard.find({
+        _id: { $in: selectedDashboardIds },
+        company: requestingUser.company,
+        department
+      });
+    } else {
+      dashboards = await Dashboard.find({
+        company: requestingUser.company,
+        department
+      });
+    }
+
     if (!dashboards.length) {
-      return createApiError("no dashboard found",401)
+      throw createApiError('No dashboards found to assign', 404);
     }
-return dashboards
-    // res.status(200).json({
-    //   success: true,
-    //   message: `Dashboards for ${department} department fetched successfully`,
-    //   data: dashboards
-    // });
 
-  } catch (error) {
-   throw createApiError("Invalid errors",401)
-  }
-}
-
-
-static async assignByDepartment(department, userIds, requestingUser, selectedDashboardIds = []) {
-  if (requestingUser.role !== 'ADMIN') {
-    throw createApiError('Only admins can assign dashboards', 403);
-  }
-
-  // ✅ Determine which dashboards to assign
-  let dashboards;
-
-  if (selectedDashboardIds.length > 0) {
-    // Assign only selected dashboards
-    dashboards = await Dashboard.find({
-      _id: { $in: selectedDashboardIds },
-      company: requestingUser.company,
-      department
-    });
-  } else {
-    // Assign all dashboards from that department
-    dashboards = await Dashboard.find({
-      company: requestingUser.company,
-      department
-    });
-  }
-
-  if (!dashboards.length) {
-    throw createApiError('No dashboards found to assign', 404);
-  }
-
-  // ✅ Notify each user
-  for (const userId of userIds) {
-    const notification = await Notification.create({
-      recipient: userId,
-      sender: requestingUser._id,
-      type: 'NEW_DASHBOARD',
-      message: `New ${department} dashboard(s) have been assigned to you.`,
-    });
-
-    // If using socket notifications
-    if (requestingUser.req?.app) {
-      const notificationSocket = requestingUser.req.app.get('notificationSocket');
-      if (notificationSocket) {
-        notificationSocket.sendToUser(userId, notification);
-      }
+    // Send notifications for each dashboard
+    for (const dashboard of dashboards) {
+      await notificationService.sendDashboardAssignedNotification(
+        dashboard,
+        requestingUser,
+        userIds,
+        app
+      );
     }
+
+    const dashboardIds = dashboards.map(d => d._id);
+    await Dashboard.updateMany(
+      { _id: { $in: dashboardIds } },
+      { $addToSet: { accessUsers: { $each: userIds } } }
+    );
+
+    return dashboards;
   }
-
-  // ✅ Assign dashboards to users
-  const dashboardIds = dashboards.map(d => d._id);
-
-  await Dashboard.updateMany(
-    { _id: { $in: dashboardIds } },
-    { $addToSet: { accessUsers: { $each: userIds } } }
-  );
-
-  return dashboards;
-}
-
 
   static async getDashboards(requestingUser) {
     let query = {};
@@ -215,7 +131,6 @@ static async assignByDepartment(department, userIds, requestingUser, selectedDas
     }
 
     const hasAccess = this.checkDashboardAccess(dashboard, requestingUser);
-
     if (!hasAccess) {
       throw createApiError('Access denied', 403);
     }
@@ -266,7 +181,7 @@ static async assignByDepartment(department, userIds, requestingUser, selectedDas
     await Dashboard.findByIdAndDelete(dashboardId);
   }
 
-  static async assignDashboard(dashboardId, userIds, requestingUser) {
+  static async assignDashboard(dashboardId, userIds, requestingUser, app) {
     const dashboard = await Dashboard.findById(dashboardId);
 
     if (!dashboard) {
@@ -288,11 +203,23 @@ static async assignByDepartment(department, userIds, requestingUser, selectedDas
       throw createApiError('Some users are invalid or not in the same company', 400);
     }
 
-    dashboard.accessUsers = [...new Set([...dashboard.accessUsers, ...userIds])];
+    dashboard.accessUsers = [...new Set([...dashboard.accessUsers.map(u => u.toString()), ...userIds])];
     await dashboard.save();
     await dashboard.populate('accessUsers', 'name email');
 
-    return dashboard;
+    // Send notifications
+    const notifications = await notificationService.sendDashboardAssignedNotification(
+      dashboard,
+      requestingUser,
+      userIds,
+      app
+    );
+
+    return {
+      dashboard,
+      notifications,
+      message: `Dashboard assigned to ${userIds.length} user(s)`
+    };
   }
 
   static async unassignDashboard(dashboardId, userIds, requestingUser) {
@@ -317,41 +244,19 @@ static async assignByDepartment(department, userIds, requestingUser, selectedDas
     return dashboard;
   }
 
-  // static checkDashboardAccess(dashboard, user) {
-  //   if (user.role === 'SUPER_ADMIN') {
-  //     return true;
-  //   }
-
-  //   if (user.role === 'ADMIN' && dashboard.createdBy.toString() === user._id.toString()) {
-  //     return true;
-  //   }
-
-  //   if (user.role === 'USER' && dashboard.accessUsers.some(u => u.toString() === user._id.toString())) {
-  //     return true;
-  //   }
-
-  //   return false;
-  // }
   static checkDashboardAccess(dashboard, user) {
     if (!dashboard || !user) return false;
 
-    // Super admin can see everything
     if (user.role === 'SUPER_ADMIN') return true;
 
-    // Admin can see their own dashboards
-    if (
-      user.role === 'ADMIN' &&
-      dashboard.createdBy?._id?.toString() === user._id.toString()
-    ) {
+    if (user.role === 'ADMIN' &&
+        dashboard.createdBy?._id?.toString() === user._id.toString()) {
       return true;
     }
 
-    // User can see dashboards they have access to
-    if (
-      user.role === 'USER' &&
-      Array.isArray(dashboard.accessUsers) &&
-      dashboard.accessUsers.some(u => u._id?.toString() === user._id.toString())
-    ) {
+    if (user.role === 'USER' &&
+        Array.isArray(dashboard.accessUsers) &&
+        dashboard.accessUsers.some(u => u._id?.toString() === user._id.toString())) {
       return true;
     }
 
@@ -366,33 +271,22 @@ static async assignByDepartment(department, userIds, requestingUser, selectedDas
     }
 
     const hasAccess = this.checkDashboardAccess(dashboard, requestingUser);
-
     if (!hasAccess) {
       throw createApiError('Access denied', 403);
     }
 
-    // const comments = await Comment.find({ dashboard: dashboardId, parent: null })
-    //   .populate('user', 'name email')
-    //   .populate({
-    //     path: 'replies',
-    //     populate: { path: 'user', select: 'name email' }
-    //   })
-    //   .sort({ createdAt: -1 });
-// dashboard.service.js (inside getComments)
-
     const comments = await Comment.find({ dashboard: dashboardId, parent: null })
       .populate('user', 'name email')
       .populate({
-        path: 'replies', // ✅ This is now a valid virtual field!
+        path: 'replies',
         populate: { path: 'user', select: 'name email' }
       })
       .sort({ createdAt: -1 });
 
-    
     return comments;
   }
 
-  static async createComment(dashboardId, userId, message, parentId = null,app) {
+  static async createComment(dashboardId, userId, message, parentId = null, app) {
     const dashboard = await Dashboard.findById(dashboardId);
     const user = await User.findById(userId);
 
@@ -401,7 +295,6 @@ static async assignByDepartment(department, userIds, requestingUser, selectedDas
     }
 
     const hasAccess = this.checkDashboardAccess(dashboard, user);
-
     if (!hasAccess) {
       throw createApiError('Access denied', 403);
     }
@@ -420,40 +313,24 @@ static async assignByDepartment(department, userIds, requestingUser, selectedDas
       parent: parentId
     });
 
-
-
-
-
     await comment.populate('user', 'name email');
 
- const allRecipients = [
-    dashboard.createdBy.toString(), // Convert to string early
-    ...dashboard.accessUsers.map(u => u.toString()) // Convert all to strings
-];
-const uniqueRecipients = new Set(allRecipients);
-console.log("USERS TO CHECK:", Array.from(uniqueRecipients)); // Should show Admin and User IDs
-const recipientsToSend = Array.from(uniqueRecipients).filter(
-    (recipientId) => recipientId !== userId.toString()
-)
-console.log("RECIPIENTS TO SEND:", recipientsToSend); // Should show only the other user's ID
-// send notifications
- const notificationSocket = app.get('notificationSocket');
-for (const recipient of recipientsToSend) {
-  const notification = await Notification.create({
-    recipient,
-    sender: userId,
-    type: 'COMMENT',
-    dashboard: dashboardId,
-    message: `${user.name} commented on the ${dashboard.title} dashboard.`
-  });
+    // Send comment notifications to all dashboard users (except sender)
+    await notificationService.sendCommentNotifications({
+      dashboard,
+      comment,
+      sender: user,
+      app
+    });
 
- 
-  if (notificationSocket) {
-    
-    notificationSocket.sendToUser(recipient, notification);
-  }
-}
-
+    // Send mention notifications for @username mentions
+    await notificationService.sendMentionNotifications({
+      commentText: message,
+      dashboard,
+      comment,
+      sender: user,
+      app
+    });
 
     return comment;
   }
@@ -495,5 +372,385 @@ for (const recipient of recipientsToSend) {
 
     await Comment.deleteMany({ parent: commentId });
     await Comment.findByIdAndDelete(commentId);
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  // ... existing methods ... 
+
+  /**
+   * Add dashboard to user's favorites
+   */
+  static async addFavorite(dashboardId, userId) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw createApiError('User not found', 404);
+    }
+
+    const dashboard = await Dashboard.findById(dashboardId);
+    if (!dashboard) {
+      throw createApiError('Dashboard not found', 404);
+    }
+
+    // Check if user has access to dashboard
+    const hasAccess = this.checkDashboardAccess(dashboard, user);
+    if (!hasAccess) {
+      throw createApiError('You must have access to the dashboard to favorite it', 403);
+    }
+
+    // Check if already favorited
+    const isAlreadyFavorited = user.favoriteDashboards.some(
+      fav => fav.dashboardId.toString() === dashboardId
+    );
+
+    if (isAlreadyFavorited) {
+      throw createApiError('Dashboard already in favorites', 400);
+    }
+
+    // Add to favorites
+    user.favoriteDashboards.push({
+      dashboardId: dashboard._id,
+      order: user.favoriteDashboards.length
+    });
+
+    await user.save();
+    
+    // Increment favorite count on dashboard (if you add this field)
+    // await Dashboard.findByIdAndUpdate(dashboardId, { $inc: { favoriteCount: 1 } });
+
+    return {
+      message: 'Dashboard added to favorites',
+      dashboard: {
+        id: dashboard._id,
+        title: dashboard.title,
+        department: dashboard.department
+      }
+    };
+  }
+
+  /**
+   * Remove dashboard from user's favorites
+   */
+  static async removeFavorite(dashboardId, userId) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw createApiError('User not found', 404);
+    }
+
+    const originalLength = user.favoriteDashboards.length;
+    user.favoriteDashboards = user.favoriteDashboards.filter(
+      fav => fav.dashboardId.toString() !== dashboardId
+    );
+
+    // If nothing was removed, it wasn't in favorites
+    if (user.favoriteDashboards.length === originalLength) {
+      throw createApiError('Dashboard not found in favorites', 404);
+    }
+
+    await user.save();
+    
+    // Decrement favorite count on dashboard (if you add this field)
+    // await Dashboard.findByIdAndUpdate(dashboardId, { $inc: { favoriteCount: -1 } });
+
+    return {
+      message: 'Dashboard removed from favorites',
+      dashboardId
+    };
+  }
+
+  /**
+   * Toggle favorite status
+   */
+  static async toggleFavorite(dashboardId, userId) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw createApiError('User not found', 404);
+    }
+
+    const dashboard = await Dashboard.findById(dashboardId);
+    if (!dashboard) {
+      throw createApiError('Dashboard not found', 404);
+    }
+
+    // Check if user has access to dashboard
+    const hasAccess = this.checkDashboardAccess(dashboard, user);
+    if (!hasAccess) {
+      throw createApiError('You must have access to the dashboard to favorite it', 403);
+    }
+
+    const existingIndex = user.favoriteDashboards.findIndex(
+      fav => fav.dashboardId.toString() === dashboardId
+    );
+
+    if (existingIndex !== -1) {
+      // Remove from favorites
+      user.favoriteDashboards.splice(existingIndex, 1);
+      // Update order for remaining items
+      user.favoriteDashboards.forEach((fav, index) => {
+        fav.order = index;
+      });
+      await user.save();
+      
+      // Decrement favorite count (if you add this field)
+      // await Dashboard.findByIdAndUpdate(dashboardId, { $inc: { favoriteCount: -1 } });
+      
+      return {
+        isFavorite: false,
+        message: 'Dashboard removed from favorites'
+      };
+    } else {
+      // Add to favorites
+      user.favoriteDashboards.push({
+        dashboardId: dashboard._id,
+        order: user.favoriteDashboards.length
+      });
+      await user.save();
+      
+      // Increment favorite count (if you add this field)
+      // await Dashboard.findByIdAndUpdate(dashboardId, { $inc: { favoriteCount: 1 } });
+      
+      return {
+        isFavorite: true,
+        message: 'Dashboard added to favorites'
+      };
+    }
+  }
+
+  /**
+   * Get user's favorite dashboards with full details
+   */
+  static async getFavoriteDashboards(userId) {
+    const user = await User.findById(userId)
+      .populate({
+        path: 'favoriteDashboards.dashboardId',
+        populate: [
+          { path: 'createdBy', select: 'name email' },
+          { path: 'company', select: 'name' }
+        ]
+      });
+
+    if (!user) {
+      throw createApiError('User not found', 404);
+    }
+
+    // Filter out any null dashboard references and sort by order
+    const favorites = user.favoriteDashboards
+      .filter(fav => fav.dashboardId) // Remove deleted dashboards
+      .sort((a, b) => a.order - b.order)
+      .map(fav => ({
+        ...fav.dashboardId.toObject(),
+        favoritedAt: fav.addedAt,
+        favoriteTags: fav.tags || [],
+        favoriteOrder: fav.order
+      }));
+
+    return favorites;
+  }
+
+  /**
+   * Reorder favorite dashboards
+   */
+  static async reorderFavorites(userId, dashboardIdsOrder) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw createApiError('User not found', 404);
+    }
+
+    // Validate all IDs belong to user's favorites
+    const userFavoriteIds = user.favoriteDashboards.map(fav => 
+      fav.dashboardId.toString()
+    );
+    
+    const invalidIds = dashboardIdsOrder.filter(
+      id => !userFavoriteIds.includes(id)
+    );
+    
+    if (invalidIds.length > 0) {
+      throw createApiError('Some dashboards are not in your favorites', 400);
+    }
+
+    // Reorder based on provided array
+    const favoritesMap = new Map();
+    user.favoriteDashboards.forEach(fav => {
+      favoritesMap.set(fav.dashboardId.toString(), fav);
+    });
+
+    user.favoriteDashboards = dashboardIdsOrder.map((id, index) => {
+      const fav = favoritesMap.get(id);
+      fav.order = index;
+      return fav;
+    });
+
+    await user.save();
+
+    return {
+      message: 'Favorites reordered successfully',
+      order: dashboardIdsOrder
+    };
+  }
+
+  /**
+   * Add tags to a favorite dashboard
+   */
+  static async tagFavorite(dashboardId, userId, tags) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw createApiError('User not found', 404);
+    }
+
+    const favorite = user.favoriteDashboards.find(
+      fav => fav.dashboardId.toString() === dashboardId
+    );
+
+    if (!favorite) {
+      throw createApiError('Dashboard not found in favorites', 404);
+    }
+
+    // Add new tags, remove duplicates
+    const existingTags = favorite.tags || [];
+    const newTags = Array.isArray(tags) ? tags : [tags];
+    favorite.tags = [...new Set([...existingTags, ...newTags])];
+
+    await user.save();
+
+    return {
+      message: 'Tags added to favorite',
+      dashboardId,
+      tags: favorite.tags
+    };
+  }
+
+  /**
+   * Remove tags from a favorite dashboard
+   */
+  static async untagFavorite(dashboardId, userId, tagsToRemove) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw createApiError('User not found', 404);
+    }
+
+    const favorite = user.favoriteDashboards.find(
+      fav => fav.dashboardId.toString() === dashboardId
+    );
+
+    if (!favorite) {
+      throw createApiError('Dashboard not found in favorites', 404);
+    }
+
+    const tagsToRemoveArray = Array.isArray(tagsToRemove) ? tagsToRemove : [tagsToRemove];
+    favorite.tags = (favorite.tags || []).filter(
+      tag => !tagsToRemoveArray.includes(tag)
+    );
+
+    await user.save();
+
+    return {
+      message: 'Tags removed from favorite',
+      dashboardId,
+      tags: favorite.tags
+    };
+  }
+
+  /**
+   * Check if a dashboard is favorited by user
+   */
+  static async checkIfFavorited(dashboardId, userId) {
+    const user = await User.findById(userId);
+    if (!user) {
+      return { isFavorited: false };
+    }
+
+    const isFavorited = user.favoriteDashboards.some(
+      fav => fav.dashboardId.toString() === dashboardId
+    );
+
+    const favoriteData = isFavorited 
+      ? user.favoriteDashboards.find(fav => fav.dashboardId.toString() === dashboardId)
+      : null;
+
+    return {
+      isFavorited,
+      addedAt: favoriteData?.addedAt,
+      tags: favoriteData?.tags || [],
+      order: favoriteData?.order
+    };
+  }
+
+  /**
+   * Get dashboards with favorite status for authenticated user
+   * Enhanced version of getDashboards that includes favorite status
+   */
+  static async getDashboardsWithFavoriteStatus(requestingUser) {
+    const dashboards = await this.getDashboards(requestingUser);
+    
+    // Get user's favorite dashboard IDs
+    const user = await User.findById(requestingUser._id).select('favoriteDashboards');
+    const favoriteIds = new Set(
+      user.favoriteDashboards.map(fav => fav.dashboardId.toString())
+    );
+    
+    // Add favorite status to each dashboard
+    return dashboards.map(dashboard => ({
+      ...dashboard.toObject(),
+      isFavorite: favoriteIds.has(dashboard._id.toString())
+    }));
+  }
+
+  /**
+   * Get most favorited dashboards (admin only)
+   */
+  static async getMostFavoritedDashboards(requestingUser, limit = 10) {
+    if (requestingUser.role !== 'ADMIN' && requestingUser.role !== 'SUPER_ADMIN') {
+      throw createApiError('Only admins can view favorited dashboards analytics', 403);
+    }
+
+    // This requires aggregating across users to count favorites
+    const users = await User.find({
+      company: requestingUser.company
+    }).select('favoriteDashboards');
+
+    // Count favorites across all users
+    const favoriteCounts = {};
+    users.forEach(user => {
+      user.favoriteDashboards.forEach(fav => {
+        const dashboardId = fav.dashboardId.toString();
+        favoriteCounts[dashboardId] = (favoriteCounts[dashboardId] || 0) + 1;
+      });
+    });
+
+    // Sort by favorite count
+    const sortedDashboardIds = Object.entries(favoriteCounts)
+      .sort(([, countA], [, countB]) => countB - countA)
+      .slice(0, limit)
+      .map(([dashboardId]) => dashboardId);
+
+    // Get dashboard details
+    const dashboards = await Dashboard.find({
+      _id: { $in: sortedDashboardIds },
+      company: requestingUser.company
+    })
+      .populate('createdBy', 'name email')
+      .populate('company', 'name');
+
+    // Map back with favorite counts and maintain order
+    return sortedDashboardIds.map(dashboardId => {
+      const dashboard = dashboards.find(d => d._id.toString() === dashboardId);
+      return {
+        ...dashboard.toObject(),
+        favoriteCount: favoriteCounts[dashboardId] || 0
+      };
+    }).filter(Boolean);
   }
 }

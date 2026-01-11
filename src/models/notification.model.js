@@ -1,4 +1,3 @@
-// models/notification.model.js
 import mongoose from 'mongoose';
 
 const notificationSchema = new mongoose.Schema(
@@ -6,15 +5,17 @@ const notificationSchema = new mongoose.Schema(
     recipient: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: true,
+      index: true
     },
     sender: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
+      required: true
     },
     type: {
       type: String,
-      enum: ['NEW_DASHBOARD', 'COMMENT'],
+      enum: ['COMMENT', 'MENTION', 'DASHBOARD_ASSIGNED', 'DASHBOARD_CREATED'],
       required: true
     },
     message: {
@@ -25,6 +26,10 @@ const notificationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Dashboard'
     },
+    comment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Comment'
+    },
     isRead: {
       type: Boolean,
       default: false
@@ -32,5 +37,9 @@ const notificationSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Compound index for efficient queries
+notificationSchema.index({ recipient: 1, isRead: 1, createdAt: -1 });
+notificationSchema.index({ recipient: 1, createdAt: -1 });
 
 export const Notification = mongoose.model('Notification', notificationSchema);

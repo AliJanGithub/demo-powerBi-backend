@@ -9,6 +9,8 @@ import adminRoutes from './routes/admin.routes.js';
 import usersRoutes from './routes/users.routes.js';
 import dashboardsRoutes from './routes/dashboards.routes.js';
 import commentsRoutes from './routes/comments.routes.js';
+import notificationsRoutes from './routes/notifications.routes.js';
+import themeRoutes from './routes/theme.routes.js';
 
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 import { logger } from './configs/logger.js';
@@ -48,12 +50,14 @@ export const createApp = () => {
     });
   });
 
-  app.use('/api/auth', authRoutes);
+  app.use('/api/auth', authRoutes); 
   app.use('/api/superadmin', superadminRoutes);
   app.use('/api/admin', adminRoutes);
   app.use('/api/users', usersRoutes);
   app.use('/api/dashboards', dashboardsRoutes);
   app.use('/api/comments', commentsRoutes);
+  app.use('/api/notifications', notificationsRoutes);
+  app.use('/api/theme', themeRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
@@ -68,3 +72,4 @@ export const createApp = () => {
 
   return app;
 };
+     

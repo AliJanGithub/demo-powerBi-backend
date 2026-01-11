@@ -4,15 +4,15 @@ import { RefreshToken } from '../models/refreshToken.model.js';
 import { parseTimeToMs } from '../utils/helpers.js';
 
 export class JWTService {
-  static generateAccessToken(userId, role) {
+  static generateAccessToken(userId, role,tenant) {
     return jwt.sign(
-      { userId, role },
+      { userId, role, tenant },
       config.jwt.accessSecret,
       { expiresIn: config.jwt.accessExpiry }
     );
   }
 
-  static generateRefreshToken(userId, role) {
+  static generateRefreshToken(userId, role,tenant) {
     return jwt.sign(
       { userId, role },
       config.jwt.refreshSecret,

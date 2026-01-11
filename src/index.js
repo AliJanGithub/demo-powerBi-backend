@@ -14,7 +14,7 @@ import { setupNotificationSocket } from './sockets/notifications.socket.js';
 const startServer = async () => {
   try {
     await connectDB();
-     console.log("🧩 EMAIL CONFIG DEBUG:", config.email.smtp);
+     console.log("🧩 EMAIL CONFIG DEBUG:");
 
     await emailService.initialize();
 

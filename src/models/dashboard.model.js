@@ -36,7 +36,8 @@ const DashboardSchema = new mongoose.Schema({
   tags: [{
     type: String,
     trim: true
-  }]
+  }],
+
 }, {
   timestamps: true
 });

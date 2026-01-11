@@ -12,10 +12,25 @@ const CompanySchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+    subdomain: {        // 👈 Added for multi-tenancy
+    type: String,
+
+    lowercase: true,
+    trim: true
+  },
   isActive: {
     type: Boolean,
     default: true
-  }
+  },
+  subscriptionPlan: {
+  type: String,
+  enum: ['TRIAL', 'PRO', 'ENTERPRISE'],
+  default: 'TRIAL'
+},
+subscriptionEnd: {
+  type: Date
+},
+
 }, {
   timestamps: true
 });

@@ -3,8 +3,29 @@ import { UserService } from '../services/user.service.js';
 import { DashboardService } from '../services/dashboard.service.js';
 import { asyncHandler, sanitizeUser } from '../utils/helpers.js';
 
+// export const inviteAdmin = asyncHandler(async (req, res) => {
+//   const { email, companyName,subdomain, name } = req.body;
+//   console.log("sub domain",subdomain)
+
+//   const { admin, company } = await AuthService.inviteAdmin(
+//     req.user._id,
+//     email,
+//     companyName,
+//     subdomain,
+//     name,
+//   );
+
+//   res.status(201).json({
+//     success: true,
+//     message: 'Admin invited successfully',
+//     data: {
+//       admin: sanitizeUser(admin),
+//       company
+//     }
+//   });
+// });
 export const inviteAdmin = asyncHandler(async (req, res) => {
-  const { email, companyName,subdomain, name } = req.body;
+  const { email, companyName, subdomain, name, subscriptionPlan } = req.body;
 
   const { admin, company } = await AuthService.inviteAdmin(
     req.user._id,
@@ -12,6 +33,7 @@ export const inviteAdmin = asyncHandler(async (req, res) => {
     companyName,
     subdomain,
     name,
+    subscriptionPlan
   );
 
   res.status(201).json({

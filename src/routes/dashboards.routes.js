@@ -60,4 +60,114 @@ router.post(
   dashboardsController.unassignDashboard
 );
 
+
+
+
+
+router.get('/favorites/mine', dashboardsController.getFavoriteDashboards);
+
+// Get dashboards with favorite status (all users)
+router.get('/with-favorites/status', dashboardsController.getDashboardsWithFavoriteStatus);
+
+// Get most favorited dashboards analytics (admin only)
+router.get(
+  '/analytics/most-favorited',
+  requireAdminOrSuperAdmin,
+  dashboardsController.getMostFavoritedDashboards
+);
+
+// Check if a specific dashboard is favorited (all users)
+router.get(
+  '/:id/favorite/status',
+  mongoIdValidation,
+  validate,
+  dashboardsController.checkIfFavorited
+);
+
+// Toggle favorite status (all users)
+router.post(
+  '/:id/favorite/toggle',
+  mongoIdValidation,
+  validate,
+  dashboardsController.toggleFavorite
+);
+
+// Add to favorites (alternative to toggle)
+router.post(
+  '/:id/favorite/add',
+  mongoIdValidation,
+  validate,
+  dashboardsController.addFavorite
+);
+
+// Remove from favorites (alternative to toggle)
+router.post(
+  '/:id/favorite/remove',
+  mongoIdValidation,
+  validate,
+  dashboardsController.removeFavorite
+);
+
+// Reorder favorite dashboards (all users)
+router.put(
+  '/favorites/reorder',
+  dashboardsController.reorderFavorites
+);
+
+// Add tags to a favorite dashboard (all users)
+router.post(
+  '/:id/favorite/tag',
+  mongoIdValidation,
+  validate,
+  dashboardsController.tagFavorite
+);
+
+// Remove tags from a favorite dashboard (all users)
+router.post(
+  '/:id/favorite/untag',
+  mongoIdValidation,
+  validate,
+  dashboardsController.untagFavorite
+);
+
+// =============== COMMENT ROUTES (if not already included) =============== //
+// Note: If you already have comment routes elsewhere, you can skip these
+
+// Get comments for a dashboard (users with dashboard access)
+router.get(
+  '/:id/comments',
+  mongoIdValidation,
+  validate,
+  dashboardsController.getComments
+);
+
+// Create a comment on a dashboard (users with dashboard access)
+router.post(
+  '/:id/comments',
+  mongoIdValidation,
+  validate,
+  dashboardsController.createComment
+);
+
+// Update a comment (comment owner)
+router.put(
+  '/comments/:commentId',
+  mongoIdValidation,
+  validate,
+  dashboardsController.updateComment
+);
+
+// Delete a comment (comment owner or admin)
+router.delete(
+  '/comments/:commentId',
+  mongoIdValidation,
+  validate,
+  dashboardsController.deleteComment
+);
+
+
+
+
+
+
 export default router;
